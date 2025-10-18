@@ -1,5 +1,6 @@
+import { isDebugMode } from '@/air/env';
 import { wagmiConfig } from '@/lib/wagmi';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { darkTheme, Locale, RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -20,10 +21,25 @@ interface Web3ProviderProps {
 }
 
 export function Web3Provider({ children }: Web3ProviderProps) {
+  if (isDebugMode()) {
+    console.log('🌐 Initializing Web3 Provider with wagmi config');
+  }
+
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
+        <RainbowKitProvider
+          theme={darkTheme({
+            accentColor: '#5B3DF5', // Match our primary color (Electric Indigo)
+            accentColorForeground: 'white',
+            borderRadius: 'medium',
+            fontStack: 'system',
+            overlayBlur: 'small',
+          })}
+          showRecentTransactions={true}
+          coolMode
+          locale={'en' as Locale}
+        >
           {children}
         </RainbowKitProvider>
       </QueryClientProvider>

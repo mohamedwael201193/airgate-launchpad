@@ -1,10 +1,14 @@
-import { defineChain } from 'viem'
-import { createConfig, http } from 'wagmi'
-import { coinbaseWallet, injected, metaMask, walletConnect } from 'wagmi/connectors'
+import { defineChain } from 'viem';
+import { createConfig, http } from 'wagmi';
+import { coinbaseWallet, injected, metaMask, walletConnect } from 'wagmi/connectors';
+import { getEnv, getWalletConnectProjectId } from '../air/env';
 
-// Define Moca Devnet chain (Chain ID: 5151)
+// Get environment configuration
+const env = getEnv();
+
+// Define Moca Devnet chain using environment variables
 export const mocaDevnet = defineChain({
-  id: 5151,
+  id: Number(env.VITE_MOCA_CHAIN_ID),
   name: 'Moca Devnet',
   nativeCurrency: {
     decimals: 18,
@@ -13,15 +17,15 @@ export const mocaDevnet = defineChain({
   },
   rpcUrls: {
     default: { 
-      http: ['https://devnet-rpc.mocachain.org'],
-      webSocket: ['wss://devnet-rpc.mocachain.org'],
+      http: [env.VITE_MOCA_RPC_URL],
+      webSocket: [env.VITE_MOCA_RPC_URL.replace('https://', 'wss://')],
     },
   },
   blockExplorers: {
     default: { 
       name: 'Moca Explorer', 
-      url: 'https://devnet-scan.mocachain.tech',
-      apiUrl: 'https://devnet-scan.mocachain.tech/api',
+      url: env.VITE_EXPLORER_BASE_URL,
+      apiUrl: `${env.VITE_EXPLORER_BASE_URL}/api`,
     },
   },
   contracts: {
@@ -34,40 +38,40 @@ export const mocaDevnet = defineChain({
   testnet: true,
 })
 
-// Create wagmi configuration
+// Create wagmi configuration using environment variables
 export const wagmiConfig = createConfig({
   chains: [mocaDevnet],
   transports: {
-    [mocaDevnet.id]: http('https://devnet-rpc.mocachain.org'),
+    [mocaDevnet.id]: http(env.VITE_MOCA_RPC_URL),
   },
   connectors: [
     injected({ shimDisconnect: true }),
     metaMask({
       dappMetadata: {
-        name: 'AirGate OS',
-        url: 'https://airgate-os.vercel.app',
-        iconUrl: 'https://airgate-os.vercel.app/logo.png',
+        name: env.VITE_AIRGATE_BRAND,
+        url: env.VITE_APP_URL,
+        iconUrl: `${env.VITE_APP_URL}/logo.png`,
       },
     }),
     walletConnect({ 
-      projectId: import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID || 'demo-project-id',
+      projectId: getWalletConnectProjectId(),
       showQrModal: true,
       metadata: {
-        name: 'AirGate OS',
+        name: env.VITE_AIRGATE_BRAND,
         description: 'Privacy-preserving credential verification platform',
-        url: typeof window !== 'undefined' ? window.location.origin : 'https://airgate-os.vercel.app',
-        icons: [`${typeof window !== 'undefined' ? window.location.origin : 'https://airgate-os.vercel.app'}/logo.png`],
+        url: env.VITE_APP_URL,
+        icons: [`${env.VITE_APP_URL}/icon-192.png`],
       },
     }),
     coinbaseWallet({ 
-      appName: 'AirGate OS',
-      appLogoUrl: 'https://airgate-os.vercel.app/logo.png',
+      appName: env.VITE_AIRGATE_BRAND,
+      appLogoUrl: `${env.VITE_APP_URL}/logo.png`,
     }),
   ],
 })
 
 // Export for use in components
-export { mocaDevnet as defaultChain }
+export { mocaDevnet as defaultChain };
 
 // Helper to get network info
 export const getNetworkConfig = () => ({
