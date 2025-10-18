@@ -1,4 +1,6 @@
 import { wagmiConfig } from '@/lib/wagmi';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { WagmiProvider } from 'wagmi';
@@ -21,7 +23,9 @@ export function Web3Provider({ children }: Web3ProviderProps) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <RainbowKitProvider>
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
@@ -29,3 +33,4 @@ export function Web3Provider({ children }: Web3ProviderProps) {
 
 // Export useful hooks
 export { useAccount, useBalance, useChainId, useConnect, useDisconnect } from 'wagmi';
+
