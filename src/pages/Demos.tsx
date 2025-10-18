@@ -13,7 +13,7 @@ import { CodeBlock } from '@/components/ui/code-block';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { motion } from 'framer-motion';
 import { Briefcase, ChevronDown, ChevronUp, Heart, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 // Define VerificationProof type locally since it's not exported from airkit
 type VerificationProof = any;
 
@@ -45,10 +45,17 @@ const demos = [
 ];
 
 export default function Demos() {
-  const { } = useAirGate();
+  const { ready, stats } = useAirGate();
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, VerificationProof>>({});
   const [expandedRules, setExpandedRules] = useState<Record<string, boolean>>({});
+  const [isInitializing, setIsInitializing] = useState(true);
+  
+  // Quick initialization for demo
+  useEffect(() => {
+    const timer = setTimeout(() => setIsInitializing(false), 200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleVerificationPass = (demoId: string, proof: VerificationProof) => {
     setProofs(prev => ({ ...prev, [demoId]: proof }));
@@ -77,6 +84,33 @@ export default function Demos() {
           </motion.p>
         </div>
       </Section>
+
+      {/* Stats Dashboard */}
+      {stats && Object.keys(stats).length > 0 && (
+        <Section className="bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="text-center mb-8">
+            <h2 className="font-display text-2xl font-bold mb-6">Live Network Statistics</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-white/20">
+                <div className="text-3xl font-bold text-blue-600">{stats.verificationsCount || 0}</div>
+                <div className="text-sm text-gray-600">Verifications Today</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-white/20">
+                <div className="text-3xl font-bold text-green-600">{stats.gasSaved || '$0'}</div>
+                <div className="text-sm text-gray-600">Gas Saved</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-white/20">
+                <div className="text-3xl font-bold text-purple-600">{stats.privacyScore || '0%'}</div>
+                <div className="text-sm text-gray-600">Privacy Score</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-white/20">
+                <div className="text-3xl font-bold text-orange-600">{stats.activeCredentials || 0}</div>
+                <div className="text-sm text-gray-600">Active Credentials</div>
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* Your Passport */}
       <Section className="bg-card/30">
@@ -143,9 +177,10 @@ export default function Demos() {
                     <AirButton
                       variant="hero"
                       onClick={() => setActiveDemo(demo.id)}
+                      disabled={isInitializing}
                       className="w-full"
                     >
-                      Launch Verify
+                      {isInitializing ? 'Loading...' : 'Launch Verify'}
                     </AirButton>
 
                     <PerkButton
@@ -177,12 +212,12 @@ export default function Demos() {
           demoKey={activeDemo as "defiJob"|"fanVip"|"traderTier"}
           onPass={(proof) => {
             handleVerificationPass(activeDemo, proof);
-            setActiveDemo(null);
           }}
           onFail={(error) => {
             console.error('Verification failed:', error);
             setActiveDemo(null);
           }}
+          onClose={() => setActiveDemo(null)}
         />
       )}
 

@@ -2,17 +2,18 @@
  * Navbar - Global navigation with animated logo and links.
  */
 
-import { Link } from 'react-router-dom';
+import { AirButton } from '@/components/ui/air-button';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X, Zap } from 'lucide-react';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AirButton } from '@/components/ui/air-button';
-import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/product', label: 'Product' },
   { to: '/demos', label: 'Demos' },
+  { to: '/innovation', label: 'Innovation' },
+  { to: '/profile', label: 'Profile' },
   { to: '/docs', label: 'Docs' },
   { to: '/pricing', label: 'Pricing' },
 ];
