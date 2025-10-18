@@ -1,131 +1,39 @@
-/**
- * AirGate React Context and Zustand store.
- * Provides global access to AIR service and state.
- */
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { getAirService } from "./airkit";
+import { getIssuerId, getVerifierId } from "./programs";
 
-import { create } from 'zustand';
-import { createContext, useContext, useEffect, ReactNode } from 'react';
-import { getAirService, AirService, AirCredential } from './airkit';
-import { getIssuerId, getVerifierId } from './programs';
-import { safeGetEnv } from './env';
-
-interface AirGateState {
-  service: AirService | null;
-  user: { address: string } | null;
-  credentials: AirCredential[];
-  isLoading: boolean;
-  error: string | null;
-  
-  // Actions
-  initialize: () => Promise<void>;
+type Ctx = {
+  ready: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-  refreshCredentials: () => Promise<void>;
-}
+  getIssuerId: (k: string) => string;
+  getVerifierId: (k: string) => string;
+  service: any;
+};
+const AirGateCtx = createContext<Ctx | null>(null);
 
-export const useAirGateStore = create<AirGateState>((set, get) => ({
-  service: null,
-  user: null,
-  credentials: [],
-  isLoading: false,
-  error: null,
+export function AirGateProvider({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = useState(false);
+  const service = useMemo(() => getAirService(), []);
+  useEffect(() => { 
+    service.init?.({ 
+      buildEnv: service.buildEnv || 'development', 
+      enableLogging: true, 
+      skipRehydration: false 
+    }).finally(() => setReady(true)); 
+  }, [service]);
 
-  initialize: async () => {
-    try {
-      set({ isLoading: true, error: null });
-      const service = await getAirService();
-      await service.init();
-      set({ service, isLoading: false });
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to initialize AIR service',
-        isLoading: false 
-      });
-    }
-  },
-
-  login: async () => {
-    const { service } = get();
-    if (!service) throw new Error('Service not initialized');
-    
-    try {
-      set({ isLoading: true, error: null });
-      const user = await service.login();
-      const credentials = await service.getCredentials();
-      set({ user, credentials, isLoading: false });
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Login failed',
-        isLoading: false 
-      });
-      throw error;
-    }
-  },
-
-  logout: async () => {
-    const { service } = get();
-    if (!service) return;
-    
-    try {
-      await service.logout();
-      set({ user: null, credentials: [] });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  },
-
-  refreshCredentials: async () => {
-    const { service } = get();
-    if (!service) return;
-    
-    try {
-      const credentials = await service.getCredentials();
-      set({ credentials });
-    } catch (error) {
-      console.error('Failed to refresh credentials:', error);
-    }
-  },
-}));
-
-interface AirGateContextValue {
-  getIssuerId: (key: string) => string;
-  getVerifierId: (key: string) => string;
-  env: ReturnType<typeof safeGetEnv>;
-}
-
-const AirGateContext = createContext<AirGateContextValue | null>(null);
-
-export function AirGateProvider({ children }: { children: ReactNode }) {
-  const initialize = useAirGateStore(state => state.initialize);
-  const env = safeGetEnv();
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  const value: AirGateContextValue = {
-    getIssuerId,
-    getVerifierId,
-    env,
-  };
+  const login = async () => { await service.login?.(); };
+  const logout = async () => { await service.logout?.(); };
 
   return (
-    <AirGateContext.Provider value={value}>
+    <AirGateCtx.Provider value={{ ready, login, logout, getIssuerId, getVerifierId, service }}>
       {children}
-    </AirGateContext.Provider>
+    </AirGateCtx.Provider>
   );
 }
-
-export function useAirGate() {
-  const context = useContext(AirGateContext);
-  if (!context) {
-    throw new Error('useAirGate must be used within AirGateProvider');
-  }
-  
-  const store = useAirGateStore();
-  
-  return {
-    ...store,
-    ...context,
-  };
-}
+export const useAirGate = () => {
+  const ctx = useContext(AirGateCtx);
+  if (!ctx) throw new Error("useAirGate must be used within AirGateProvider");
+  return ctx;
+};

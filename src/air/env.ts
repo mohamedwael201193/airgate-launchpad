@@ -1,99 +1,37 @@
-/**
- * Typed environment variable access with validation.
- * Throws clear errors with remediation tips if required variables are missing.
- */
+import { z } from "zod";
 
-export interface AirEnv {
-  partnerId: string;
-  env: 'testnet' | 'prod';
-  mocaChainId: string;
-  mocaRpcUrl: string;
-  explorerBaseUrl: string;
-  partnerTokenUrl: string;
-  issuerProgramIds: Record<string, string>;
-  verifierProgramIds: Record<string, string>;
-  brand: string;
-  contactEmail: string;
-  demosEnabled: boolean;
-}
+const Env = z.object({
+  VITE_AIR_PARTNER_ID: z.string().min(1),
+  VITE_AIR_ENV: z.enum(["testnet","prod"]),
+  VITE_MOCA_CHAIN_ID: z.string().min(1),
+  VITE_MOCA_RPC_URL: z.string().url(),
+  VITE_EXPLORER_BASE_URL: z.string().url(),
+  VITE_PARTNER_TOKEN_URL: z.string().url(),
+  VITE_ISSUER_PROGRAM_IDS: z.string().transform(s => JSON.parse(s)),
+  VITE_VERIFIER_PROGRAM_IDS: z.string().transform(s => JSON.parse(s)),
+  VITE_AIRGATE_BRAND: z.string().min(1),
+  VITE_AIRGATE_CONTACT_EMAIL: z.string().min(3),
+  VITE_AIRGATE_DEMOS_ENABLED: z.string().optional(),
+});
 
-export function getEnv(): AirEnv {
-  const missingKeys: string[] = [];
+export type Env = z.infer<typeof Env> & {
+  VITE_ISSUER_PROGRAM_IDS: Record<string,string>;
+  VITE_VERIFIER_PROGRAM_IDS: Record<string,string>;
+};
 
-  const partnerId = import.meta.env.VITE_AIR_PARTNER_ID;
-  if (!partnerId) missingKeys.push('VITE_AIR_PARTNER_ID');
-
-  const env = (import.meta.env.VITE_AIR_ENV || 'testnet') as 'testnet' | 'prod';
-  
-  const mocaChainId = import.meta.env.VITE_MOCA_CHAIN_ID;
-  if (!mocaChainId) missingKeys.push('VITE_MOCA_CHAIN_ID');
-
-  const mocaRpcUrl = import.meta.env.VITE_MOCA_RPC_URL;
-  if (!mocaRpcUrl) missingKeys.push('VITE_MOCA_RPC_URL');
-
-  const explorerBaseUrl = import.meta.env.VITE_EXPLORER_BASE_URL || 'https://explorer.moca.network';
-  
-  const partnerTokenUrl = import.meta.env.VITE_PARTNER_TOKEN_URL;
-  if (!partnerTokenUrl) missingKeys.push('VITE_PARTNER_TOKEN_URL');
-
-  let issuerProgramIds: Record<string, string> = {};
-  try {
-    issuerProgramIds = JSON.parse(import.meta.env.VITE_ISSUER_PROGRAM_IDS || '{}');
-  } catch (e) {
-    console.error('Failed to parse VITE_ISSUER_PROGRAM_IDS:', e);
-  }
-
-  let verifierProgramIds: Record<string, string> = {};
-  try {
-    verifierProgramIds = JSON.parse(import.meta.env.VITE_VERIFIER_PROGRAM_IDS || '{}');
-  } catch (e) {
-    console.error('Failed to parse VITE_VERIFIER_PROGRAM_IDS:', e);
-  }
-
-  const brand = import.meta.env.VITE_AIRGATE_BRAND || 'AirGate OS';
-  const contactEmail = import.meta.env.VITE_AIRGATE_CONTACT_EMAIL || 'hello@airgate.example';
-  const demosEnabled = import.meta.env.VITE_AIRGATE_DEMOS_ENABLED === 'true';
-
-  if (missingKeys.length > 0) {
-    throw new Error(
-      `Missing required environment variables:\n${missingKeys.map(k => `  - ${k}`).join('\n')}\n\n` +
-      `Remediation:\n` +
-      `1. Copy .env.example to .env\n` +
-      `2. Fill in your AIR Partner credentials\n` +
-      `3. Add Issuer and Verifier Program IDs as JSON strings\n` +
-      `4. Restart your dev server\n\n` +
-      `See README.md for detailed setup instructions.`
-    );
-  }
-
-  return {
-    partnerId,
-    env,
-    mocaChainId,
-    mocaRpcUrl,
-    explorerBaseUrl,
-    partnerTokenUrl,
-    issuerProgramIds,
-    verifierProgramIds,
-    brand,
-    contactEmail,
-    demosEnabled,
+export function getEnv(): Env {
+  const raw = {
+    VITE_AIR_PARTNER_ID: import.meta.env.VITE_AIR_PARTNER_ID,
+    VITE_AIR_ENV: import.meta.env.VITE_AIR_ENV,
+    VITE_MOCA_CHAIN_ID: import.meta.env.VITE_MOCA_CHAIN_ID,
+    VITE_MOCA_RPC_URL: import.meta.env.VITE_MOCA_RPC_URL,
+    VITE_EXPLORER_BASE_URL: import.meta.env.VITE_EXPLORER_BASE_URL,
+    VITE_PARTNER_TOKEN_URL: import.meta.env.VITE_PARTNER_TOKEN_URL,
+    VITE_ISSUER_PROGRAM_IDS: import.meta.env.VITE_ISSUER_PROGRAM_IDS || "{}",
+    VITE_VERIFIER_PROGRAM_IDS: import.meta.env.VITE_VERIFIER_PROGRAM_IDS || "{}",
+    VITE_AIRGATE_BRAND: import.meta.env.VITE_AIRGATE_BRAND,
+    VITE_AIRGATE_CONTACT_EMAIL: import.meta.env.VITE_AIRGATE_CONTACT_EMAIL,
+    VITE_AIRGATE_DEMOS_ENABLED: String(import.meta.env.VITE_AIRGATE_DEMOS_ENABLED ?? "true"),
   };
-}
-
-export function safeGetEnv(): Partial<AirEnv> {
-  try {
-    return getEnv();
-  } catch {
-    // Return safe defaults for demo mode
-    return {
-      partnerId: 'demo-partner',
-      env: 'testnet',
-      brand: 'AirGate OS',
-      contactEmail: 'hello@airgate.example',
-      demosEnabled: false,
-      issuerProgramIds: {},
-      verifierProgramIds: {},
-    };
-  }
+  return Env.parse(raw) as Env;
 }

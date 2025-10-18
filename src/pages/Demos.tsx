@@ -2,19 +2,20 @@
  * Demos - Interactive demo page with real verification flows.
  */
 
-import { useState } from 'react';
+import { demoRules } from '@/air/rules';
+import { useAirGate } from '@/air/useAirGate';
+import { PassportProgress } from '@/components/airgate/PassportProgress';
+import { PerkButton } from '@/components/airgate/PerkButton';
+import { VerifyModal } from '@/components/airgate/VerifyModal';
 import { Section } from '@/components/layout/Section';
 import { AirButton } from '@/components/ui/air-button';
 import { CodeBlock } from '@/components/ui/code-block';
-import { VerifyModal } from '@/components/airgate/VerifyModal';
-import { PassportProgress } from '@/components/airgate/PassportProgress';
-import { PerkButton } from '@/components/airgate/PerkButton';
-import { useAirGate } from '@/air/useAirGate';
-import { demoRules } from '@/air/rules';
-import type { VerificationProof } from '@/air/airkit';
-import { motion } from 'framer-motion';
-import { Briefcase, Heart, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { motion } from 'framer-motion';
+import { Briefcase, ChevronDown, ChevronUp, Heart, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+// Define VerificationProof type locally since it's not exported from airkit
+type VerificationProof = any;
 
 const demos = [
   {
@@ -44,7 +45,7 @@ const demos = [
 ];
 
 export default function Demos() {
-  const { credentials } = useAirGate();
+  const { } = useAirGate();
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, VerificationProof>>({});
   const [expandedRules, setExpandedRules] = useState<Record<string, boolean>>({});
@@ -81,7 +82,7 @@ export default function Demos() {
       <Section className="bg-card/30">
         <div className="max-w-2xl mx-auto">
           <h2 className="font-display text-2xl font-bold mb-6 text-center">Your Passport</h2>
-          <PassportProgress credentials={credentials} />
+          <PassportProgress />
         </div>
       </Section>
 
@@ -171,16 +172,19 @@ export default function Demos() {
       </Section>
 
       {/* Verify Modals */}
-      {demos.map((demo) => (
+      {activeDemo && (
         <VerifyModal
-          key={demo.id}
-          open={activeDemo === demo.id}
-          onOpenChange={(open) => !open && setActiveDemo(null)}
-          rules={demo.rule}
-          title={`Verify: ${demo.title}`}
-          onPass={(proof) => handleVerificationPass(demo.id, proof)}
+          demoKey={activeDemo as "defiJob"|"fanVip"|"traderTier"}
+          onPass={(proof) => {
+            handleVerificationPass(activeDemo, proof);
+            setActiveDemo(null);
+          }}
+          onFail={(error) => {
+            console.error('Verification failed:', error);
+            setActiveDemo(null);
+          }}
         />
-      ))}
+      )}
 
       {/* CTA */}
       <Section className="bg-card/30 text-center">

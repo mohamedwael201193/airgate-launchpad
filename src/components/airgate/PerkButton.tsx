@@ -2,11 +2,12 @@
  * PerkButton - Action button that requires verification proof to enable.
  */
 
-import { Lock, CheckCircle } from 'lucide-react';
 import { AirButton } from '@/components/ui/air-button';
-import { cn } from '@/lib/utils';
-import type { VerificationProof } from '@/air/airkit';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { CheckCircle, Lock } from 'lucide-react';
+// Define VerificationProof type locally since it's not exported from airkit
+type VerificationProof = any;
 
 interface PerkButtonProps {
   label: string;
@@ -27,11 +28,30 @@ export function PerkButton({
 }: PerkButtonProps) {
   const isEnabled = !!proof;
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (proof && onSubmit) {
       onSubmit(proof);
     } else if (proof && href) {
       window.open(href, '_blank', 'noopener,noreferrer');
+    } else if (proof) {
+      // POST proof to /api/open-perk and navigate to returned URL
+      try {
+        const response = await fetch('/api/open-perk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ proof }),
+        });
+        if (response.ok) {
+          const { url } = await response.json();
+          if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        } else {
+          console.error('Failed to open perk:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error opening perk:', error);
+      }
     }
   };
 
